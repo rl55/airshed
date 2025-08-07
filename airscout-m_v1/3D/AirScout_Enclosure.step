@@ -1,0 +1,12 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('AirScout Enclosure'),'2;1');
+FILE_NAME('AirScout_Enclosure.step','2025-01-01T12:00:00',('Author'),('Airshed Intelligence'),'','','');
+FILE_SCHEMA(('AP214'));
+ENDSEC;
+DATA;
+#1=CARTESIAN_POINT('',(0.,0.,0.));
+#2=DIRECTION('',(0.,0.,1.));
+#3=AXIS2_PLACEMENT_3D('',#1,#2,$);
+ENDSEC;
+END-ISO-10303-21;

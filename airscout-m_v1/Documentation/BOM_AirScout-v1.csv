@@ -1,0 +1,22 @@
+Component,Description,Footprint,Quantity,Unit Cost (INR),Total Cost (INR),Supplier
+ESP8266 NodeMCU,WiFi MCU Module ESP-12E,30-pin DIP,1,250,250,Robu.in
+PMS5003,Particulate Matter Sensor,8-pin JST 1.25mm,1,1850,1850,Robu.in
+BME280,Temp/Humidity/Pressure,4-pin I2C Module,1,295,295,Electronicscomp.com
+MQ-135,Air Quality Gas Sensor,4-pin Module,1,135,135,Robu.in
+GT-U7 GPS,NEO-6M GPS Module,4-pin Header,1,485,485,Robu.in
+TSL2561,Light Sensor,I2C Module,1,195,195,Electronicscomp.com
+DS3231,RTC Module,I2C Module,1,125,125,Robu.in
+SD Card Module,MicroSD Card Reader,SPI Module,1,75,75,Robu.in
+TP4056,Li-ion Charger Module,Type-C Input,1,45,45,Robu.in
+18650 Battery,3.7V 2600mAh,18650 Holder,1,185,185,Robu.in
+JST Connectors,1.25mm 4-pin,JST-XH,8,8,64,Electronicscomp.com
+LED 3mm,Red/Green/Blue,THT,3,2,6,Local
+Resistor 10K,1/4W 5%,0805 SMD,10,0.5,5,Local
+Resistor 4.7K,1/4W 5%,0805 SMD,4,0.5,2,Local
+Capacitor 100nF,Ceramic,0805 SMD,8,1,8,Local
+Capacitor 10uF,Electrolytic,THT,4,3,12,Local
+Push Button,Tactile 6x6mm,THT,2,5,10,Local
+PCB,60x80mm 2-Layer,Custom,1,250,250,JLCPCB
+Enclosure,3D Printed ABS,Custom,1,150,150,Local
+M3 Screws,15mm length,M3x15,8,2,16,Local
+Headers,2.54mm Male/Female,Various,1,45,45,Local

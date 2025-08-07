@@ -1,0 +1,31 @@
+{
+  "board": {
+    "design_settings": {
+      "defaults": {
+        "board_outline_line_width": 0.1,
+        "copper_line_width": 0.2
+      },
+      "diff_pair_dimensions": [],
+      "drc_exclusions": [],
+      "meta": {
+        "version": 2
+      },
+      "rule_severities": {
+        "annular_width": "error",
+        "clearance": "error",
+        "copper_edge_clearance": "error"
+      }
+    }
+  },
+  "meta": {
+    "filename": "AirScout-v1.kicad_pro",
+    "version": 1
+  },
+  "project": {
+    "meta": {
+      "title": "AirScout-M v1",
+      "company": "Airshed Intelligence",
+      "comment": "Mobile Air Quality Monitor"
+    }
+  }
+}

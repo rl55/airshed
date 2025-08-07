@@ -1,0 +1,16 @@
+solid AirScout_Enclosure
+  facet normal 0 0 1
+    outer loop
+      vertex 0 0 0
+      vertex 65 0 0
+      vertex 65 85 0
+    endloop
+  endfacet
+  facet normal 0 0 1
+    outer loop
+      vertex 0 0 0
+      vertex 65 85 0
+      vertex 0 85 0
+    endloop
+  endfacet
+endsolid AirScout_Enclosure
