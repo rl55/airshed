@@ -1,0 +1,723 @@
+HIGH-LEVEL DESIGN (REVISED)
+1. SYSTEM OVERVIEW
+1.1 Architecture Evolution
+The UrbanAir Intelligence Platform v2.0 incorporates critical enhancements based on architectural review:
+
+New Additions:
+
+Vector Database (Qdrant): Semantic search and pattern recognition
+
+Google Airview+ Integration: Street-level pollution data
+
+ArcGIS Platform: Advanced spatial analytics
+
+Dual Messaging: MQTT for IoT, RabbitMQ for services
+
+KrakenD API Gateway: Higher performance, stateless
+
+Next.js 14: Modern frontend with SSR/SSG
+
+DBT: Data transformation layer
+
+ELK Stack: Comprehensive logging and search
+
+1.2 Revised Component Architecture
+yaml
+
+
+
+Architecture_Stack_v2:
+  Infrastructure:
+    - Kubernetes (Container Orchestration)
+    - Docker (Containerization)
+    - Ansible (Configuration Management)
+    - Terraform (Infrastructure as Code)
+  API_Gateway:
+    - KrakenD (Primary Gateway)      # Changed from Kong
+    - Traefik (Ingress Controller)
+  IoT_Layer:
+    - Eclipse Mosquitto (MQTT for Sensors)
+    - RabbitMQ (Internal Messaging)   # Added
+    - Node-RED (IoT Flow Management)
+  Data_Collection:
+    - Apache NiFi (Data Ingestion)
+    - Google Airview+ API             # Added
+    - ArcGIS Data Pipelines          # Added
+    - Sentinel-5P Satellite API
+  Processing:
+    - Apache Kafka (Event Streaming)
+    - Apache Flink (Stream Processing)
+    - Apache Spark (Batch Processing)
+    - DBT (Data Transformation)       # Added
+    - Apache Airflow (Orchestration)
+  Storage:
+    - TimescaleDB (Time-Series)
+    - PostgreSQL (Relational)
+    - MongoDB (Documents)
+    - Qdrant (Vector Database)        # Added
+    - MinIO (Object Storage)
+    - Redis (Cache)
+    - Elasticsearch (Search/Logs)     # Added
+  Analytics:
+    - TensorFlow/PyTorch (ML Models)
+    - Apache Superset (Visualization)
+    - JupyterHub (Data Science)
+    - ArcGIS Analytics               # Added
+    - Qdrant (Similarity Search)     # Added
+  Application:
+    - FastAPI (Backend Services)
+    - Next.js 14 (Web Frontend)      # Changed from React
+    - React Native (Mobile Apps)
+    - Keycloak (Authentication)
+    - GraphQL (Optional API Layer)   # Optional addition
+  Monitoring:
+    - Prometheus + Grafana (Metrics)
+    - ELK Stack (Logs/Search)        # Added
+    - Jaeger (Distributed Tracing)
+    - Sentry (Error Tracking)        # Added
+  Development_Tools:
+    - PgAdmin (Database Management)  # Added
+    - Redis Commander (Dev Only)     # Added
+    - MailHog (Email Testing)        # Added
+2. REVISED SYSTEM ARCHITECTURE
+mermaid
+
+
+
+graph TB
+    subgraph "Data Sources"
+        AS[AirScout Sensors]
+        GAV[Google Airview+]
+        AGS[ArcGIS Services]
+        SAT[Satellite APIs]
+    end
+    subgraph "Ingestion Layer"
+        MQTT[Mosquitto MQTT]
+        RMQ[RabbitMQ]
+        HTTP[HTTP Collectors]
+        NIFI[Apache NiFi]
+    end
+    subgraph "API Gateway"
+        KD[KrakenD Gateway]
+        GQL[GraphQL Optional]
+    end
+    subgraph "Message Bus"
+        KAFKA[Apache Kafka]
+    end
+    subgraph "Processing"
+        FLINK[Flink Streaming]
+        SPARK[Spark Batch]
+        DBT[DBT Transform]
+        AIRFLOW[Airflow]
+    end
+    subgraph "Storage"
+        TS[TimescaleDB]
+        PG[PostgreSQL]
+        QD[Qdrant Vector]
+        ES[Elasticsearch]
+        REDIS[Redis]
+    end
+    subgraph "Analytics & ML"
+        ML[TensorFlow]
+        ARC[ArcGIS Analytics]
+        VEC[Vector Search]
+    end
+    subgraph "Applications"
+        API[FastAPI Backend]
+        NEXT[Next.js Frontend]
+        MOBILE[React Native]
+    end
+    AS --> MQTT
+    GAV --> NIFI
+    AGS --> HTTP
+    SAT --> NIFI
+    MQTT --> KAFKA
+    RMQ --> KAFKA
+    NIFI --> KAFKA
+    KAFKA --> FLINK
+    KAFKA --> SPARK
+    SPARK --> DBT
+    FLINK --> TS
+    DBT --> PG
+    FLINK --> REDIS
+    ML --> QD
+    ARC --> PG
+    KD --> API
+    API --> NEXT
+    API --> MOBILE
+3. ENHANCED DATA FLOW ARCHITECTURE
+3.1 Vector Database Integration
+python
+
+
+
+# Qdrant Vector Database Implementation
+class VectorSearchEngine:
+    def __init__(self):
+        self.client = QdrantClient(host="localhost", port=6333)
+        self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
+        # Create collections
+        self.collections = {
+            'pollution_patterns': {
+                'size': 384,
+                'distance': 'Cosine'
+            },
+            'location_similarity': {
+                'size': 384,
+                'distance': 'Euclid'
+            },
+            'document_search': {
+                'size': 768,
+                'distance': 'Dot'
+            }
+        }
+    async def index_pollution_pattern(self, data):
+        """Index pollution patterns for similarity search"""
+        # Create embedding from pollution data
+        pattern_text = f"""
+        Location: {data['location']}
+        PM2.5: {data['pm25']} µg/m³
+        AQI: {data['aqi']}
+        Time: {data['hour']}:00
+        Weather: {data['weather_condition']}
+        Traffic: {data['traffic_level']}
+        """
+        embedding = self.encoder.encode(pattern_text)
+        # Store in Qdrant
+        self.client.upsert(
+            collection_name="pollution_patterns",
+            points=[
+                PointStruct(
+                    id=data['pattern_id'],
+                    vector=embedding.tolist(),
+                    payload={
+                        'location': data['location'],
+                        'timestamp': data['timestamp'],
+                        'aqi': data['aqi'],
+                        'conditions': data
+                    }
+                )
+            ]
+        )
+    async def find_similar_conditions(self, query_conditions, limit=10):
+        """Find historically similar pollution conditions"""
+        query_embedding = self.encoder.encode(query_conditions)
+        results = self.client.search(
+            collection_name="pollution_patterns",
+            query_vector=query_embedding.tolist(),
+            limit=limit
+        )
+        return [
+            {
+                'similarity': hit.score,
+                'historical_data': hit.payload,
+                'pattern_id': hit.id
+            }
+            for hit in results
+        ]
+3.2 Google Airview+ Integration
+python
+
+
+
+# Google Airview+ Data Pipeline
+class GoogleAirviewIntegration:
+    def __init__(self):
+        self.api_key = os.environ['GOOGLE_AIRVIEW_API_KEY']
+        self.base_url = "https://airquality.googleapis.com/v1"
+        self.coverage_cities = [
+            'Delhi', 'Mumbai', 'Bangalore', 'Chennai', 
+            'Kolkata', 'Hyderabad', 'Pune'
+        ]
+    async def fetch_street_level_data(self):
+        """Fetch hyperlocal street-level measurements"""
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for city in self.coverage_cities:
+                url = f"{self.base_url}/currentConditions:lookup"
+                params = {
+                    'key': self.api_key,
+                    'location': city,
+                    'extraComputations': [
+                        'HEALTH_RECOMMENDATIONS',
+                        'DOMINANT_POLLUTANT_CONCENTRATION',
+                        'POLLUTANT_CONCENTRATION'
+                    ]
+                }
+                tasks.append(self.fetch_city_data(session, url, params))
+            results = await asyncio.gather(*tasks)
+            return self.process_airview_data(results)
+    def process_airview_data(self, raw_data):
+        """Process and enrich Airview+ data"""
+        processed = []
+        for city_data in raw_data:
+            if 'indexes' in city_data:
+                for index in city_data['indexes']:
+                    processed.append({
+                        'source': 'google_airview',
+                        'location': city_data['location'],
+                        'aqi': index['aqi'],
+                        'category': index['category'],
+                        'dominant_pollutant': index['dominantPollutant'],
+                        'health_recommendations': index.get('healthRecommendations'),
+                        'timestamp': datetime.now().isoformat(),
+                        'street_level': True,
+                        'resolution': '1m'  # 1-meter resolution
+                    })
+        return processed
+    async def stream_to_kafka(self, data):
+        """Stream Airview data to Kafka"""
+        producer = AIOKafkaProducer(
+            bootstrap_servers='localhost:9092',
+            value_serializer=lambda v: json.dumps(v).encode()
+        )
+        await producer.start()
+        try:
+            for record in data:
+                await producer.send('airview-data', record)
+        finally:
+            await producer.stop()
+3.3 ArcGIS Integration
+javascript
+
+
+
+// ArcGIS Spatial Analytics Integration
+import { loadModules } from 'esri-loader';
+class ArcGISAnalytics {
+    constructor() {
+        this.apiKey = process.env.ARCGIS_API_KEY;
+        this.portalUrl = 'https://urbanair.maps.arcgis.com';
+    }
+    async initializeModules() {
+        const modules = await loadModules([
+            'esri/Map',
+            'esri/views/SceneView',
+            'esri/layers/FeatureLayer',
+            'esri/analysis/DirectLineMeasurement3D',
+            'esri/widgets/Swipe',
+            'esri/renderers/smartMapping/creators/color',
+            'esri/tasks/Geoprocessor',
+            'esri/tasks/support/LinearUnit',
+            'esri/geometry/geometryEngine'
+        ]);
+        this.modules = modules;
+        return this;
+    }
+    async createPollutionHeatmap(sensorData) {
+        const [Map, SceneView, FeatureLayer] = this.modules;
+        // Create 3D pollution visualization
+        const map = new Map({
+            basemap: 'dark-gray-vector',
+            ground: 'world-elevation'
+        });
+        const view = new SceneView({
+            container: 'viewDiv',
+            map: map,
+            camera: {
+                position: {
+                    x: 77.2090,
+                    y: 28.6139,
+                    z: 5000
+                },
+                tilt: 65
+            }
+        });
+        // Create pollution cloud layer
+        const pollutionLayer = new FeatureLayer({
+            source: this.convertToFeatures(sensorData),
+            renderer: await this.createVolumetricRenderer(),
+            elevationInfo: {
+                mode: 'relative-to-ground',
+                featureExpressionInfo: {
+                    expression: '$feature.pollution_height'
+                }
+            }
+        });
+        map.add(pollutionLayer);
+        return view;
+    }
+    async performSpatialAnalysis(data) {
+        const geometryEngine = this.modules[8];
+        // Pollution dispersion modeling
+        const dispersionModel = await this.runGeoprocessing({
+            service: 'PollutionDispersion',
+            params: {
+                wind_speed: data.wind_speed,
+                wind_direction: data.wind_direction,
+                emission_points: data.sensors,
+                terrain_model: 'SRTM_30m'
+            }
+        });
+        // Population exposure assessment
+        const exposureAnalysis = await this.calculateExposure({
+            pollution_surface: dispersionModel.surface,
+            population_layer: 'WorldPop_2023',
+            vulnerability_factors: ['age', 'health_conditions']
+        });
+        return {
+            dispersion: dispersionModel,
+            exposure: exposureAnalysis,
+            affected_population: exposureAnalysis.total_exposed,
+            high_risk_areas: exposureAnalysis.risk_zones
+        };
+    }
+    async createStoryMap(pollutionData) {
+        // Create interactive story map for public communication
+        const storyMap = {
+            title: 'Air Quality in Your City',
+            sections: [
+                {
+                    type: 'cover',
+                    title: 'Understanding Air Pollution',
+                    media: { type: 'video', url: '/intro-video.mp4' }
+                },
+                {
+                    type: 'map',
+                    title: 'Current Air Quality',
+                    map: await this.createPollutionHeatmap(pollutionData),
+                    narrative: 'Real-time air quality across the city...'
+                },
+                {
+                    type: 'timeline',
+                    title: '24-Hour Trends',
+                    data: pollutionData.timeline
+                },
+                {
+                    type: 'actions',
+                    title: 'What You Can Do',
+                    recommendations: this.generateRecommendations(pollutionData)
+                }
+            ]
+        };
+        return storyMap;
+    }
+}
+4. REVISED PROCESSING ARCHITECTURE
+4.1 KrakenD API Gateway Configuration
+json
+
+
+
+{
+    "version": 3,
+    "name": "UrbanAir API Gateway",
+    "port": 8080,
+    "cache_ttl": "5m",
+    "timeout": "10s",
+    "extra_config": {
+        "telemetry/opencensus": {
+            "exporters": {
+                "prometheus": {
+                    "port": 9091
+                }
+            }
+        },
+        "security/cors": {
+            "allow_origins": ["*"],
+            "allow_methods": ["GET", "POST", "PUT", "DELETE"],
+            "allow_headers": ["*"]
+        },
+        "router": {
+            "return_error_msg": true
+        }
+    },
+    "endpoints": [
+        {
+            "endpoint": "/api/v2/aqi/current",
+            "method": "GET",
+            "output_encoding": "json",
+            "backend": [
+                {
+                    "url_pattern": "/aqi/current",
+                    "host": ["http://fastapi:8000"],
+                    "extra_config": {
+                        "backend/http": {
+                            "return_error_code": true
+                        }
+                    }
+                },
+                {
+                    "url_pattern": "/currentConditions",
+                    "host": ["https://airquality.googleapis.com"],
+                    "group": "airview_data"
+                }
+            ],
+            "extra_config": {
+                "qos/ratelimit/router": {
+                    "max_rate": 100,
+                    "client_max_rate": 10,
+                    "strategy": "ip"
+                },
+                "modifier/response-body-generator": {
+                    "template": "{{ marshal .aqi_data }}",
+                    "content_type": "application/json"
+                },
+                "plugin/req-resp-modifier": {
+                    "name": ["geo-enrichment", "aqi-calculator"]
+                }
+            }
+        },
+        {
+            "endpoint": "/api/v2/search/semantic",
+            "method": "POST",
+            "backend": [
+                {
+                    "url_pattern": "/vector/search",
+                    "host": ["http://qdrant:6333"],
+                    "encoding": "json"
+                }
+            ],
+            "extra_config": {
+                "validation/json-schema": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string"},
+                        "limit": {"type": "number"}
+                    },
+                    "required": ["query"]
+                }
+            }
+        }
+    ]
+}
+4.2 DBT Transformation Layer
+sql
+
+
+
+-- dbt/models/staging/stg_sensor_readings.sql
+{{ config(
+    materialized='incremental',
+    unique_key='reading_id',
+    on_schema_change='fail'
+) }}
+WITH raw_readings AS (
+    SELECT
+        device_id,
+        timestamp,
+        pm25,
+        pm10,
+        temperature,
+        humidity,
+        location
+    FROM {{ source('raw', 'sensor_readings') }}
+    {% if is_incremental() %}
+        WHERE timestamp > (SELECT MAX(timestamp) FROM {{ this }})
+    {% endif %}
+),
+enriched_readings AS (
+    SELECT
+        r.*,
+        -- Add Google Airview data
+        av.street_level_aqi,
+        av.dominant_pollutant,
+        -- Add ArcGIS spatial data
+        ag.land_use_type,
+        ag.population_density,
+        ag.distance_to_road,
+        -- Calculate AQI
+        {{ calculate_aqi('pm25', 'pm10') }} as calculated_aqi
+    FROM raw_readings r
+    LEFT JOIN {{ ref('airview_latest') }} av
+        ON ST_DWithin(r.location, av.location, 100)
+    LEFT JOIN {{ ref('arcgis_spatial') }} ag
+        ON ST_Contains(ag.geometry, r.location)
+)
+SELECT
+    {{ dbt_utils.surrogate_key(['device_id', 'timestamp']) }} as reading_id,
+    *,
+    CURRENT_TIMESTAMP as processed_at
+FROM enriched_readings
+yaml
+
+
+
+# dbt/models/schema.yml
+version: 2
+models:
+  - name: stg_sensor_readings
+    description: "Staged sensor readings with enrichment"
+    columns:
+      - name: reading_id
+        description: "Unique identifier for each reading"
+        tests:
+          - unique
+          - not_null
+      - name: calculated_aqi
+        description: "AQI calculated from pollutant values"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 500]
+              quote: false
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          min_value: 1000000  # Minimum 1M readings
+          max_value: 10000000 # Maximum 10M readings
+  - name: mart_hourly_analytics
+    description: "Hourly aggregated analytics"
+    materialized: table
+    post-hook:
+      - "CREATE INDEX ON {{ this }} (location_id, hour);"
+      - "ANALYZE {{ this }};"
+4.3 RabbitMQ Internal Messaging
+python
+
+
+
+# RabbitMQ Configuration for Service Communication
+import aio_pika
+from aio_pika import ExchangeType
+class MessageBroker:
+    def __init__(self):
+        self.connection = None
+        self.channel = None
+        self.exchanges = {}
+    async def connect(self):
+        self.connection = await aio_pika.connect_robust(
+            "amqp://guest:guest@rabbitmq:5672/"
+        )
+        self.channel = await self.connection.channel()
+        # Declare exchanges
+        await self.setup_exchanges()
+    async def setup_exchanges(self):
+        # Topic exchange for notifications
+        self.exchanges['notifications'] = await self.channel.declare_exchange(
+            'notifications',
+            ExchangeType.TOPIC,
+            durable=True
+        )
+        # Direct exchange for tasks
+        self.exchanges['tasks'] = await self.channel.declare_exchange(
+            'tasks',
+            ExchangeType.DIRECT,
+            durable=True
+        )
+        # Fanout for broadcasts
+        self.exchanges['broadcasts'] = await self.channel.declare_exchange(
+            'broadcasts',
+            ExchangeType.FANOUT,
+            durable=True
+        )
+    async def publish_alert(self, severity, message):
+        await self.exchanges['notifications'].publish(
+            aio_pika.Message(
+                body=json.dumps(message).encode(),
+                delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+            ),
+            routing_key=f'alert.{severity}'
+        )
+    async def queue_email(self, email_data):
+        queue = await self.channel.declare_queue(
+            'email_queue',
+            durable=True,
+            arguments={'x-max-priority': 10}
+        )
+        await self.exchanges['tasks'].publish(
+            aio_pika.Message(
+                body=json.dumps(email_data).encode(),
+                priority=email_data.get('priority', 5)
+            ),
+            routing_key='email'
+        )
+5. FRONTEND ARCHITECTURE WITH NEXT.JS 14
+typescript
+
+
+
+// Next.js 14 App Router Structure
+// app/layout.tsx
+import { Inter } from 'next/font/google'
+import { Providers } from './providers'
+import { Analytics } from '@vercel/analytics/react'
+const inter = Inter({ subsets: ['latin'] })
+export const metadata = {
+  title: 'UrbanAir - Real-time Air Quality Intelligence',
+  description: 'Monitor air quality in Indian cities',
+}
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body className={inter.className}>
+        <Providers>
+          {children}
+          <Analytics />
+        </Providers>
+      </body>
+    </html>
+  )
+}
+// app/(public)/page.tsx - Public landing with SSG
+import { Suspense } from 'react'
+import dynamic from 'next/dynamic'
+const AQIMap = dynamic(() => import('@/components/AQIMap'), {
+  ssr: false,
+  loading: () => <MapSkeleton />
+})
+export default async function HomePage() {
+  // This runs at build time for SSG
+  const initialData = await fetchAQIData()
+  return (
+    <main>
+      <HeroSection />
+      <Suspense fallback={<MapSkeleton />}>
+        <AQIMap initialData={initialData} />
+      </Suspense>
+      <AirviewIntegration />
+      <ArcGISVisualization />
+    </main>
+  )
+}
+// app/api/aqi/route.ts - API Routes
+import { NextRequest, NextResponse } from 'next/server'
+import { Redis } from '@upstash/redis'
+const redis = new Redis({
+  url: process.env.REDIS_URL!,
+  token: process.env.REDIS_TOKEN!,
+})
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const lat = searchParams.get('lat')
+  const lng = searchParams.get('lng')
+  // Check cache first
+  const cached = await redis.get(`aqi:${lat}:${lng}`)
+  if (cached) {
+    return NextResponse.json(cached)
+  }
+  // Fetch from backend
+  const response = await fetch(
+    `${process.env.BACKEND_URL}/aqi?lat=${lat}&lng=${lng}`
+  )
+  const data = await response.json()
+  // Cache for 5 minutes
+  await redis.setex(`aqi:${lat}:${lng}`, 300, JSON.stringify(data))
+  return NextResponse.json(data)
+}
+// app/dashboard/page.tsx - Protected dashboard with RSC
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+export default async function Dashboard() {
+  const session = await auth()
+  if (!session) {
+    redirect('/login')
+  }
+  // Server component - fetch data server-side
+  const [devices, alerts, analytics] = await Promise.all([
+    fetchUserDevices(session.user.id),
+    fetchActiveAlerts(session.user.location),
+    fetchAnalytics(session.user.id)
+  ])
+  return (
+    <DashboardLayout>
+      <DeviceManager devices={devices} />
+      <AlertPanel alerts={alerts} />
+      <AnalyticsChart data={analytics} />
+      <VectorSearch /> {/* Qdrant integration */}
+    </DashboardLayout>
+  )
+}
