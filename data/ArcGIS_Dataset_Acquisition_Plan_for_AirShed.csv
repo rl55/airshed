@@ -1,0 +1,12 @@
+Dataset,Source,Use in AirShed
+CPCB NAQMP Station Data,CPCB via ArcGIS / Data.gov.in,Benchmarking & model calibration
+IMD Meteorological Data,India Meteorological Dept,"Correlation with AQI, dispersion modelling"
+Land Use/Land Cover (LULC),NRSC Bhuvan / ArcGIS Hub,Emission source mapping
+Road Network & Traffic Density,OpenStreetMap + ArcGIS Network Analyst,Traffic-linked AQI forecasting
+Population Density Grids,Census / WorldPop / ArcGIS Living Atlas,Exposure risk modelling
+Industrial Zone Polygons,State PCB / MoEF datasets,Hotspot detection & regulation support
+Construction Site & Dust Source Maps,"Municipal datasets, Bhuvan thematic",Integration with Dust Control Cell activities
+High-Resolution Satellite Imagery (<5m),"NRSC, ISRO, commercial providers",Detecting construction/demolition dust events
+Vehicle Emission Inventories,"RTO, State Transport Dept",NO₂/CO emission source mapping
+Real-Time Traffic Sensor Data,City traffic management systems,Short-term AQI spike prediction
+Hospital & Pharmacy Records (Anonymised),"State Health Dept, Hospitals",Health-AQI correlation for alerts
