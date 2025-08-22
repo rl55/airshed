@@ -1,8 +1,7 @@
 📚 AirShed Intelligence Platform - Development Guide
-Complete Implementation Prompt for Claude Code
 
 🎯 PROJECT OVERVIEW
-You are building the AirShed Intelligence Platform v2.0, a comprehensive IoT-based air quality monitoring system for Indian cities. This platform combines real-time sensor data, Google Airview+ street-level measurements, and ArcGIS spatial analytics to provide actionable air quality insights to citizens, government bodies, and healthcare organizations.
+the AirShed Intelligence Platform v2.0, a comprehensive IoT-based air quality monitoring system for Indian cities. This platform combines real-time sensor data, Google Airview+ street-level measurements, and ArcGIS spatial analytics to provide actionable air quality insights to citizens, government bodies, and healthcare organizations.
 Core Objectives:
 
 Deploy a network of 10,000+ air quality sensors across Indian cities
@@ -777,35 +776,3 @@ const reconnectWebSocket = () => {
   }, Math.min(1000 * Math.pow(2, retryCount), 30000));
 };
 
-📚 ADDITIONAL RESOURCES
-
-Next.js 14 Documentation
-FastAPI Documentation
-Qdrant Documentation
-ArcGIS JS API
-Google Airview API
-Apache Flink Guide
-DBT Documentation
-
-
-🚀 START DEVELOPMENT
-bash# Copy this entire guide to a file named DEVELOPMENT_GUIDE.md
-# Then in your terminal:
-
-# 1. Create project directory
-mkdir airshed-platform && cd airshed-platform
-
-# 2. Initialize git
-git init
-
-# 3. Create the directory structure
-mkdir -p frontend backend gateway processing devices infrastructure monitoring scripts docs
-
-# 4. Copy this guide
-echo "Paste this entire content" > DEVELOPMENT_GUIDE.md
-
-# 5. Start with Claude Code
-# Open this folder in your IDE and share DEVELOPMENT_GUIDE.md with Claude Code
-# Ask: "Please help me implement the AirShed Platform following the DEVELOPMENT_GUIDE.md specifications"
-
-This guide provides everything needed to build the complete AirShed Intelligence Platform v2.0. Start with the backend API, then frontend, followed by data processing pipelines. Test each component thoroughly before integration.
